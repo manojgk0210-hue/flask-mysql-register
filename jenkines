@@ -1,24 +1,29 @@
 pipeline {
     agent any
 
+    triggers {
+        pollSCM('* * * * *')
+    }
+
     stages {
 
         stage('Build & Deploy') {
             steps {
                 sh '''
-                # Clean workspace
+                # Clean old repo if exists
                 rm -rf flask-mysql-register
 
-                # Repo already checked out by Jenkins, so just move
-                cd ${WORKSPACE}
+                # Clone repo
+                git clone https://github.com/manojgk0210-hue/flask-mysql-register.git
+                cd flask-mysql-register
 
                 # Start containers
-                docker compose up -d --build
+                docker-compose up -d --build
 
-                # Wait for MySQL
+                # Wait for MySQL to start
                 sleep 20
 
-                # Run DB commands (non-interactive)
+                # Execute MySQL commands (NON-interactive)
                 docker exec flask-mysql-register_mysql_1 \
                 mysql -u root -prootpassword -e "
                 CREATE DATABASE IF NOT EXISTS userdb;
@@ -36,13 +41,15 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'docker ps'
+                sh '''
+                docker ps
+                '''
             }
         }
 
         stage('Deliver') {
             steps {
-                echo 'Deployment completed successfully 🚀'
+                echo 'Application deployed successfully 🚀'
             }
         }
     }
