@@ -11,7 +11,7 @@ pipeline {
             steps {
                 sh '''
                 # Clean old repo if exists
-                rm -rf flask-mysql-register
+            
 
                 # Clone repo
                 git clone https://github.com/manojgk0210-hue/flask-mysql-register.git
