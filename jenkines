@@ -10,18 +10,25 @@ pipeline {
         stage('Build & Deploy') {
             steps {
                 sh '''
-                echo "Starting Docker Compose..."
+                echo "Starting containers..."
                 docker compose down || true
                 docker compose up -d --build
 
                 echo "Waiting for MySQL to be ready..."
                 for i in {1..30}; do
-                  docker compose exec -T mysql mysqladmin ping -u root -prootpassword --silent && break
+                  docker compose exec -T mysql \
+                    mysqladmin ping \
+                    -h 127.0.0.1 \
+                    -P 3306 \
+                    -u root -prootpassword --silent && break
                   sleep 2
                 done
 
                 echo "Initializing database..."
-                docker compose exec -T mysql mysql -u root -prootpassword <<EOF
+                docker compose exec -T mysql mysql \
+                  -h 127.0.0.1 \
+                  -P 3306 \
+                  -u root -prootpassword <<EOF
                 CREATE DATABASE IF NOT EXISTS userdb;
                 USE userdb;
                 CREATE TABLE IF NOT EXISTS users (
