@@ -10,22 +10,18 @@ pipeline {
         stage('Build & Deploy') {
             steps {
                 sh '''
-                # Clean old repo if exists
-            
+                echo "Starting Docker Compose..."
+                docker compose down || true
+                docker compose up -d --build
 
-                # Clone repo
-                git clone https://github.com/manojgk0210-hue/flask-mysql-register.git
-                cd flask-mysql-register
+                echo "Waiting for MySQL to be ready..."
+                for i in {1..30}; do
+                  docker compose exec -T mysql mysqladmin ping -u root -prootpassword --silent && break
+                  sleep 2
+                done
 
-                # Start containers
-                docker-compose up -d --build
-
-                # Wait for MySQL to start
-                sleep 20
-
-                # Execute MySQL commands (NON-interactive)
-                docker exec flask-mysql-register_mysql_1 \
-                mysql -u root -prootpassword -e "
+                echo "Initializing database..."
+                docker compose exec -T mysql mysql -u root -prootpassword <<EOF
                 CREATE DATABASE IF NOT EXISTS userdb;
                 USE userdb;
                 CREATE TABLE IF NOT EXISTS users (
@@ -34,7 +30,7 @@ pipeline {
                     email VARCHAR(100),
                     password VARCHAR(100)
                 );
-                "
+                EOF
                 '''
             }
         }
@@ -42,6 +38,7 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
+                docker compose ps
                 docker ps
                 '''
             }
@@ -49,7 +46,7 @@ pipeline {
 
         stage('Deliver') {
             steps {
-                echo 'Application deployed successfully 🚀'
+                echo '✅ Flask-MySQL application deployed successfully 🚀'
             }
         }
     }
